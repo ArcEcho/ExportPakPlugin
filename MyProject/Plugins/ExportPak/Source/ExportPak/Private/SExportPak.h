@@ -2,14 +2,19 @@
 
 #pragma once
 
+#include "ExportPak.h"
 #include "CoreMinimal.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Input/Reply.h"
 #include "Widgets/SCompoundWidget.h"
 
+
 class IDetailsView;
 class SBox;
 class UExportPakSettings;
+struct FDependenciesInfo; 
+class FAssetRegistryModule;
+
 
 //////////////////////////////////////////////////////////////////////////
 // SExportPak
@@ -34,6 +39,18 @@ private:
 	FReply OnExportPakButtonClicked();
 
 	void CreateTargetAssetListView();
+
+	void GetAssetDependecies(TMap<FString, FDependenciesInfo>& DependenciesInfos);
+
+	void CookContent();
+
+	void GeneratePakFiles(const TMap<FString, FDependenciesInfo> &DependenciesInfos);
+
+	void GatherDependenciesInfoRecursively(FAssetRegistryModule &AssetRegistryModule, const FString &TargetLongPackageName,
+		TArray<FString> &DependenciesInGameContentDir, TArray<FString> &OtherDependencies);
+
+	/** This will save the dependencies information to the OutputPath/AssetDependencies.json */
+	void SaveDependenciesInfo(const TMap<FString, FDependenciesInfo> &DependenciesInfos);
 
 private:
 

@@ -10,6 +10,8 @@
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "SExportPak.h"
 
+DEFINE_LOG_CATEGORY(LogExportPak);
+
 static const FName ExportPakTabName("ExportPak");
 
 #define LOCTEXT_NAMESPACE "FExportPakModule"
@@ -64,11 +66,6 @@ void FExportPakModule::ShutdownModule()
 
 TSharedRef<SDockTab> FExportPakModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	FText WidgetText = FText::Format(
-		LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
-		FText::FromString(TEXT("FExportPakModule::OnSpawnPluginTab")),
-		FText::FromString(TEXT("ExportPak.cpp"))
-		);
 
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)

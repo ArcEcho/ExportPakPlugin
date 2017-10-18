@@ -26,8 +26,8 @@ public class ExportPak : ModuleRules
 		
 		PublicDependencyModuleNames.AddRange(
 			new string[]
-			{
-				"Core",
+            {
+                "Core",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -46,6 +46,8 @@ public class ExportPak : ModuleRules
 				"SlateCore",
                 "EditorStyle",
                 "PropertyEditor",
+				"Json",
+                "UATHelper",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

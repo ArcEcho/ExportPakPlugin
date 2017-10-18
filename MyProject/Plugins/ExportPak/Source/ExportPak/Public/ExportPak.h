@@ -8,6 +8,8 @@
 class FToolBarBuilder;
 class FMenuBuilder;
 
+DECLARE_LOG_CATEGORY_EXTERN(LogExportPak, Log, All);
+
 class FExportPakModule : public IModuleInterface
 {
 public:
