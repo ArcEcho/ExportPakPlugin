@@ -125,19 +125,12 @@ bool FHashStringWithSHA1Test::RunTest(const FString& Parameters)
 
 FReply SExportPak::OnExportPakButtonClicked()
 {
-	UE_LOG(LogTemp, Log, TEXT("TTTTT"));
-
 	TMap<FString, FDependenciesInfo> DependenciesInfos;
 	GetAssetDependecies(DependenciesInfos);
 
-	// Write Results
 	SaveDependenciesInfo(DependenciesInfos);
 
-	//CookContent();
-
 	GeneratePakFiles(DependenciesInfos);
-
-	// Build the hash from the path name + the contents of the bulk data.
 
 	return FReply::Handled();
 }
@@ -211,83 +204,6 @@ void SExportPak::GetAssetDependecies(TMap<FString, FDependenciesInfo>& Dependenc
 
 void SExportPak::CookContent()
 {
-	//// @hack GDC: this should be moved somewhere else and be less hacky
-	//ITargetPlatform* RunningTargetPlatform = GetTargetPlatformManager()->GetRunningTargetPlatform();
-
-	//if (RunningTargetPlatform != nullptr)
-	//{
-	//	const FName CookedPlatformName = *(RunningTargetPlatform->PlatformName() + TEXT("NoEditor"));
-	//	
-
-	//	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(CookedPlatformName);
-	//	check(PlatformInfo);
-
-	//	if (FInstalledPlatformInfo::Get().IsPlatformMissingRequiredFile(PlatformInfo->BinaryFolderName))
-	//	{
-	//		if (!FInstalledPlatformInfo::OpenInstallerOptions())
-	//		{
-	//			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("MissingPlatformFilesCook", "Missing required files to cook for this platform."));
-	//		}
-	//		return;
-	//	}
-
-	//	FString OptionalParams;
-
-	//	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(PlatformInfo->VanillaPlatformName))
-	//	{
-	//		return;
-	//	}
-
-	//	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
-	//	{
-	//		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-	//		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
-	//		return;
-	//	}
-
-	//	// Append any extra UAT flags specified for this platform flavor
-	//	if (!PlatformInfo->UATCommandLine.IsEmpty())
-	//	{
-	//		OptionalParams += TEXT(" ");
-	//		OptionalParams += PlatformInfo->UATCommandLine;
-	//	}
-	//	else
-	//	{
-	//		OptionalParams += TEXT(" -targetplatform=");
-	//		OptionalParams += *PlatformInfo->TargetPlatformName.ToString();
-	//	}
-
-	//	OptionalParams += GetCookingOptionalParams();
-
-	//	if (FApp::IsRunningDebug())
-	//	{
-	//		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
-	//	}
-
-	//	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	//	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -skipstage -ue4exe=%s %s"),
-	//		GetUATCompilationFlags(),
-	//		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
-	//		*ProjectPath,
-	//		*FUnrealEdMisc::Get().GetExecutableForCommandlets(),
-	//		*OptionalParams
-	//	);
-
-	//	IUATHelperModule::Get().CreateUatTask(CommandLine, PlatformInfo->DisplayName, LOCTEXT("CookingContentTaskName", "Cooking content"), LOCTEXT("CookingTaskName", "Cooking"), FEditorStyle::GetBrush(TEXT("MainFrame.CookContent")));
-
-	//}	
-}
-
-/**
-* Gets compilation flags for UAT for this system.
-*/
-const TCHAR* GetUATCompilationFlags()
-{
-	// We never want to compile editor targets when invoking UAT in this context.
-	// If we are installed or don't have a compiler, we must assume we have a precompiled UAT.
-	return (FApp::GetEngineIsPromotedBuild() || FApp::IsEngineInstalled() || FPlatformMisc::IsDebuggerPresent())
-		? TEXT("-nocompile -nocompileeditor")
-		: TEXT("-nocompileeditor");
 }
 
 class FCookedAssetFileVisitor : public IPlatformFile::FDirectoryVisitor
@@ -328,9 +244,6 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 	FString PakOutputDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
 	for (auto& PackageNameInGameDir : PackagesToHandle)
 	{
-
-		UE_LOG(LogExportPak, Log, TEXT("    %s"), *PackageNameInGameDir);
-
 		// Standardize package name. May this is not necessary.
 		FString TargetLongPackageName;
 		{
@@ -385,25 +298,20 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 		{
 			FString Ext = FPaths::GetExtension(f);
 			FString RelativePathForResponseFile = FPaths::Combine(TEXT("../../.."), ProjectName, ItermediateDirectory, Filename) + FString(".") + Ext;
-		
+
 			ResponseFileContent += FString::Printf(TEXT("\"%s\" \"%s\"\n"), *f, *RelativePathForResponseFile);
 		}
 
-		FString ResponseFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedMainPackageName + "_Paklist.txt");
-		FFileHelper::SaveStringToFile(ResponseFileContent, *ResponseFilepath);
-
-		FString LogFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedMainPackageName + ".log");
-
 		FString HashedPackageName = HashStringWithSHA1(PackageNameInGameDir);
+		FString LogFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + ".log");
 		FString OutputPakFilepath = FPaths::Combine(PakOutputDirectory, HashedPackageName + TEXT(".pak"));
 
-		
+		FString ResponseFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + "_Paklist.txt");
+		FFileHelper::SaveStringToFile(ResponseFileContent, *ResponseFilepath);
+
 		FString UnrealPakExeFilepath = FPaths::Combine(FPaths::EngineDir(), TEXT("Binaries/Win64/UnrealPak.exe"));
 		FPaths::MakeStandardFilename(UnrealPakExeFilepath);
 		UnrealPakExeFilepath = FPaths::ConvertRelativePathToFull(UnrealPakExeFilepath);
-
-
-		UE_LOG(LogExportPak, Log, TEXT("$$$$$ %s %s %s %s"), *PackageNameInGameDir, *OutputPakFilepath, *FPaths::EngineDir(), *UnrealPakExeFilepath);
 
 		FString CommandLine = FString::Printf(
 			TEXT("%s -create=%s -encryptionini -platform=Windows -installed -UTF8Output -multiprocess -patchpaddingalign=2048 -abslog=%s"),
@@ -412,7 +320,7 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 			*LogFilepath
 		);
 
-		FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, true, true, true, nullptr, -1, nullptr, nullptr);
+		FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, nullptr);
 	}
 }
 
@@ -420,13 +328,66 @@ void SExportPak::GeneratePakFiles(const TMap<FString, FDependenciesInfo> &Depend
 {
 	for (auto &DependencyInfo : DependenciesInfos)
 	{
-		UE_LOG(LogExportPak, Log, TEXT("%s"), *DependencyInfo.Key);
 		FString HashedLongPackageName = HashStringWithSHA1(DependencyInfo.Key);
 
-		TArray<FString> PackagesToHandle;
+		TArray<FString> PackagesToHandle = DependencyInfo.Value.DependenciesInGameContentDir;
 		PackagesToHandle.Add(DependencyInfo.Key);
 
 		GeneratePakFiles_Internal(PackagesToHandle, DependencyInfo.Key);
+
+		SavePakDescriptionFile(DependencyInfo.Key, DependencyInfo.Value);
+	}
+}
+
+void SExportPak::SavePakDescriptionFile(const FString& TargetPackage, const FDependenciesInfo& DependecyInfo)
+{
+	FString HashedMainPackageName = HashStringWithSHA1(TargetPackage);
+	FString PakOutputDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
+
+	TSharedPtr<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject);
+	{
+		RootJsonObject->SetStringField("long_package_name", TargetPackage);
+
+		FString PakFilepath = FPaths::Combine(PakOutputDirectory, HashedMainPackageName + TEXT(".pak"));
+
+		RootJsonObject->SetStringField("pak_file", HashedMainPackageName + TEXT(".pak"));
+		RootJsonObject->SetStringField("asset_class", DependecyInfo.AssetClassString);
+
+		//FString FileSizeInBytes = FString::Printf(TEXT("%lld"), FPlatformFileManager::Get().GetPlatformFile().FileSize(*PakFilepath));
+		//RootJsonObject->SetStringField("file_size_in_bytes", FileSizeInBytes);
+	}
+
+	TArray<TSharedPtr<FJsonValue>> DependencyEntries;
+	for (const auto& DependencyInGameContentDir : DependecyInfo.DependenciesInGameContentDir)
+	{
+		TSharedPtr<FJsonObject> EntryJsonObject = MakeShareable(new FJsonObject);
+
+		FString HashedPackageName = HashStringWithSHA1(DependencyInGameContentDir);
+		FString PakFilepath = FPaths::Combine(PakOutputDirectory, HashedPackageName + TEXT(".pak"));
+		//FString FileSizeInBytes = FString::Printf(TEXT("%lld"), FPlatformFileManager::Get().GetPlatformFile().FileSize(*PakFilepath));
+
+		EntryJsonObject->SetStringField("long_package_name", DependencyInGameContentDir);
+		EntryJsonObject->SetStringField("pak_file", HashedPackageName + TEXT(".pak"));
+		//EntryJsonObject->SetStringField("file_size_in_bytes", FileSizeInBytes);
+
+		TSharedRef< FJsonValueObject > JsonValue = MakeShareable(new FJsonValueObject(EntryJsonObject));
+		DependencyEntries.Add(JsonValue);
+	}
+	RootJsonObject->SetArrayField("dependencies_in_game_content_dir", DependencyEntries);
+
+	FString OutputString;
+	auto JsonWirter = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(RootJsonObject.ToSharedRef(), JsonWirter);
+
+	FString PakDescriptionFilename = FPaths::Combine(PakOutputDirectory,  HashedMainPackageName + TEXT(".json"));
+	PakDescriptionFilename = FPaths::ConvertRelativePathToFull(PakDescriptionFilename);
+
+	// Attention to FFileHelper::EEncodingOptions::ForceUTF8 here. 
+	// In some case, UE4 will save as UTF16 according to the content.
+	bool bSaveSuccess = FFileHelper::SaveStringToFile(OutputString, *PakDescriptionFilename, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+	if (!bSaveSuccess)
+	{
+		UE_LOG(LogExportPak, Error, TEXT("Failed to save pak description file: %s"), *PakDescriptionFilename);
 	}
 }
 

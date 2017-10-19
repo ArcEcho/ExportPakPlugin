@@ -42,9 +42,9 @@ private:
 
 	void GetAssetDependecies(TMap<FString, FDependenciesInfo>& DependenciesInfos);
 
-	void CookContent();
-
 	void GeneratePakFiles(const TMap<FString, FDependenciesInfo> &DependenciesInfos);
+
+	void SavePakDescriptionFile(const FString& TargetPackage, const FDependenciesInfo& DependecyInfo);
 
 	void GatherDependenciesInfoRecursively(FAssetRegistryModule &AssetRegistryModule, const FString &TargetLongPackageName,
 		TArray<FString> &DependenciesInGameContentDir, TArray<FString> &OtherDependencies);
