@@ -52,6 +52,8 @@ private:
 	/** This will save the dependencies information to the OutputPath/AssetDependencies.json */
 	void SaveDependenciesInfo(const TMap<FString, FDependenciesInfo> &DependenciesInfos);
 
+	bool CanExportPakExecuted() const;
+
 private:
 
 	/** Inline content area for different tool modes */

@@ -45,63 +45,93 @@ void SExportPak::Construct(const FArguments& InArgs)
 			SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		.Padding(2, 0, 0, 0)
-		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		.Padding(0.f)
-		[
-			SNew(SVerticalBox)
+			.FillHeight(1.0f)
+			.Padding(2, 0, 0, 0)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(0.f)
+				[
+					SNew(SVerticalBox)
 
-			+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		.Padding(4, 4, 4, 4)
-		[
-			SNew(SScrollBox)
-			+ SScrollBox::Slot()
-		[
-			SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.Padding(4, 4, 4, 4)
+					[
+						SNew(SScrollBox)
+						+ SScrollBox::Slot()
+						[
+							SNew(SVerticalBox)
 
-			+ SVerticalBox::Slot()
-		.Padding(0, 10, 0, 0)
-		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-		[
-			SNew(SVerticalBox)
-			// Static mesh component selection
-		+ SVerticalBox::Slot()
-		.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		[
-			SettingsView->AsShared()
-		]
-		]
-		]
-		]
-		]
-		]
+							+ SVerticalBox::Slot()
+							.Padding(0, 10, 0, 0)
+							[
+								SNew(SBorder)
+								.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+								[
+									SNew(SVerticalBox)
+									// Static mesh component selection
+									+ SVerticalBox::Slot()
+									.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+									[
+										SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot()
+										.VAlign(VAlign_Center)
+										[
+											SettingsView->AsShared()
+										]
+									]
+								]
+							]
+						]
+					]
 
-	+ SVerticalBox::Slot()
-		.AutoHeight()
-		.HAlign(HAlign_Right)
-		.Padding(4, 4, 10, 4)
-		[
-			SNew(SButton)
-			.Text(LOCTEXT("ExportPak", "Export Pak file(s)"))
-		.OnClicked(this, &SExportPak::OnExportPakButtonClicked)
-		.IsEnabled_Lambda([this]() -> bool { return ExportPakSettings != nullptr && ExportPakSettings->PackagesToExport.Num() != 0; })
-		]
-		]
-		]
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.HAlign(HAlign_Right)
+					.Padding(4, 4, 10, 4)
+					[
+						SNew(SButton)
+						.Text(LOCTEXT("ExportPak", "Export Pak file(s)"))
+						.OnClicked(this, &SExportPak::OnExportPakButtonClicked)
+						.IsEnabled(this, &SExportPak::CanExportPakExecuted)
+					]
+				]
+			]
 		];
 
 	ExportPakSettings = UExportPakSettings::Get();
 	SettingsView->SetObject(ExportPakSettings);
+}
+
+bool SExportPak::CanExportPakExecuted() const
+{
+	if (ExportPakSettings == nullptr)
+	{
+		return false;
+	}
+	
+	if(	ExportPakSettings->PackagesToExport.Num() == 0)
+	{
+		return false;
+	}
+
+	bool bAllEmpty = true;
+	for(auto PackageToExport : ExportPakSettings->PackagesToExport)
+	{
+		if(!PackageToExport.FilePath.IsEmpty())
+		{
+			bAllEmpty = false;
+			break;
+		}
+	}
+
+	if(bAllEmpty)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 FString HashStringWithSHA1(const FString &InString)
@@ -111,6 +141,7 @@ FString HashStringWithSHA1(const FString &InString)
 
 	return StringHash.ToString();
 }
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHashStringWithSHA1Test, "ExportPak.HashStringWithSHA1", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FHashStringWithSHA1Test::RunTest(const FString& Parameters)
@@ -148,19 +179,7 @@ void SExportPak::CreateTargetAssetListView()
 	DetailsViewArgs.bCustomFilterAreaLocation = true;
 	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Hide;
 
-
-	//// Tiny hack to hide this setting, since we have no way / value to go off to 
-	//struct Local
-	//{
-	//	/** Delegate to show all properties */
-	//	static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable)
-	//	{
-	//		return (PropertyAndParent.Property.GetFName() != GET_MEMBER_NAME_CHECKED(FExportPakProxySettings, GutterSpace));
-	//	}
-	//};
-
-	SettingsView = EditModule.CreateDetailView(DetailsViewArgs);
-	//SettingsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&Local::IsPropertyVisible, true));
+	SettingsView = EditModule.CreateDetailView(DetailsViewArgs);;
 }
 
 void SExportPak::GetAssetDependecies(TMap<FString, FDependenciesInfo>& DependenciesInfos)
@@ -202,10 +221,6 @@ void SExportPak::GetAssetDependecies(TMap<FString, FDependenciesInfo>& Dependenc
 	}
 }
 
-void SExportPak::CookContent()
-{
-}
-
 class FCookedAssetFileVisitor : public IPlatformFile::FDirectoryVisitor
 {
 public:
@@ -238,7 +253,7 @@ private:
 	FString AssetFilename;
 };
 
-void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FString& MainPackage)
+void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const FString& MainPackage)
 {
 	FString HashedMainPackageName = HashStringWithSHA1(MainPackage);
 	FString PakOutputDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
@@ -256,7 +271,7 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 
 			if (!bConvertionResult)
 			{
-				UE_LOG(LogExportPak, Log, TEXT("        TryConvertFilenameToLongPackageName Failed: %s!"), *FailedReason);
+				UE_LOG(LogExportPak, Error, TEXT("        TryConvertFilenameToLongPackageName Failed: %s!"), *FailedReason);
 				return;
 			}
 			else
@@ -274,7 +289,7 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 			);
 			if (!bConvertionResult)
 			{
-				UE_LOG(LogExportPak, Log, TEXT("        TryConvertLongPackageNameToFilename Failed!"));
+				UE_LOG(LogExportPak, Error, TEXT("        TryConvertLongPackageNameToFilename Failed!"));
 				return;
 			}
 			else
@@ -285,10 +300,10 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 
 		FString Filename = FPaths::GetBaseFilename(TargetAssetFilepath);
 		FString ProjectName = FPaths::GetBaseFilename(FPaths::GetProjectFilePath());
-		FString ItermediateDirectory = FPaths::GetPath(TargetAssetFilepath).Replace(*FPaths::GameDir(), TEXT(""), ESearchCase::CaseSensitive);
+		FString IntermediateDirectory = FPaths::GetPath(TargetAssetFilepath).Replace(*FPaths::GameDir(), TEXT(""), ESearchCase::CaseSensitive);
 
 		// TODO ArcEcho: Now it is hard-coded to WindowsNoEditor
-		FString TargetCookedAssetDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("Cooked/WindowsNoEditor"), ProjectName, ItermediateDirectory);
+		FString TargetCookedAssetDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("Cooked/WindowsNoEditor"), ProjectName, IntermediateDirectory);
 
 		FCookedAssetFileVisitor CookedAssetFileVisitor(Filename);
 		FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*TargetCookedAssetDirectory, CookedAssetFileVisitor);
@@ -297,7 +312,7 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 		for (auto &f : CookedAssetFileVisitor.Files)
 		{
 			FString Ext = FPaths::GetExtension(f);
-			FString RelativePathForResponseFile = FPaths::Combine(TEXT("../../.."), ProjectName, ItermediateDirectory, Filename) + FString(".") + Ext;
+			FString RelativePathForResponseFile = FPaths::Combine(TEXT("../../.."), ProjectName, IntermediateDirectory, Filename) + FString(".") + Ext;
 
 			ResponseFileContent += FString::Printf(TEXT("\"%s\" \"%s\"\n"), *f, *RelativePathForResponseFile);
 		}
@@ -324,6 +339,94 @@ void GeneratePakFiles_Internal(const TArray<FString>& PackagesToHandle, const FS
 	}
 }
 
+void GenerateBatchPakFiles(const TArray<FString>& PackagesToHandle, const FString& MainPackage)
+{
+	FString HashedMainPackageName = HashStringWithSHA1(MainPackage);
+	FString PakOutputDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
+
+	FString ResponseFileContent = "";
+
+	for (auto& PackageNameInGameDir : PackagesToHandle)
+	{
+		// Standardize package name. May this is not necessary.
+		FString TargetLongPackageName;
+		{
+			FString FailedReason;
+			bool bConvertionResult = FPackageName::TryConvertFilenameToLongPackageName(
+				PackageNameInGameDir,
+				TargetLongPackageName,
+				&FailedReason
+			);
+
+			if (!bConvertionResult)
+			{
+				UE_LOG(LogExportPak, Error, TEXT("        TryConvertFilenameToLongPackageName Failed: %s!"), *FailedReason);
+				return;
+			}
+			else
+			{
+				UE_LOG(LogExportPak, Log, TEXT("        %s"), *TargetLongPackageName);
+			}
+		}
+
+		FString TargetAssetFilepath;
+		{
+			bool bConvertionResult = FPackageName::TryConvertLongPackageNameToFilename(
+				TargetLongPackageName,
+				TargetAssetFilepath,
+				".uasset"
+			);
+			if (!bConvertionResult)
+			{
+				UE_LOG(LogExportPak, Error, TEXT("        TryConvertLongPackageNameToFilename Failed!"));
+				return;
+			}
+			else
+			{
+				UE_LOG(LogExportPak, Log, TEXT("            %s"), *TargetAssetFilepath);
+			}
+		}
+
+		FString Filename = FPaths::GetBaseFilename(TargetAssetFilepath);
+		FString ProjectName = FPaths::GetBaseFilename(FPaths::GetProjectFilePath());
+		FString IntermediateDirectory = FPaths::GetPath(TargetAssetFilepath).Replace(*FPaths::GameDir(), TEXT(""), ESearchCase::CaseSensitive);
+
+		// TODO ArcEcho: Now it is hard-coded to WindowsNoEditor
+		FString TargetCookedAssetDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("Cooked/WindowsNoEditor"), ProjectName, IntermediateDirectory);
+
+		FCookedAssetFileVisitor CookedAssetFileVisitor(Filename);
+		FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*TargetCookedAssetDirectory, CookedAssetFileVisitor);
+
+		for (auto &f : CookedAssetFileVisitor.Files)
+		{
+			FString Ext = FPaths::GetExtension(f);
+			FString RelativePathForResponseFile = FPaths::Combine(TEXT("../../.."), ProjectName, IntermediateDirectory, Filename) + FString(".") + Ext;
+
+			ResponseFileContent += FString::Printf(TEXT("\"%s\" \"%s\"\n"), *f, *RelativePathForResponseFile);
+		}
+	}
+
+	FString HashedPackageName = HashStringWithSHA1(MainPackage);
+	FString LogFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + ".log");
+	FString OutputPakFilepath = FPaths::Combine(PakOutputDirectory, HashedPackageName + TEXT(".pak"));
+
+	FString ResponseFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + "_Paklist.txt");
+	FFileHelper::SaveStringToFile(ResponseFileContent, *ResponseFilepath);
+
+	FString UnrealPakExeFilepath = FPaths::Combine(FPaths::EngineDir(), TEXT("Binaries/Win64/UnrealPak.exe"));
+	FPaths::MakeStandardFilename(UnrealPakExeFilepath);
+	UnrealPakExeFilepath = FPaths::ConvertRelativePathToFull(UnrealPakExeFilepath);
+
+	FString CommandLine = FString::Printf(
+		TEXT("%s -create=%s -encryptionini -platform=Windows -installed -UTF8Output -multiprocess -patchpaddingalign=2048 -abslog=%s"),
+		*OutputPakFilepath,
+		*ResponseFilepath,
+		*LogFilepath
+	);
+
+	FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, nullptr);
+}
+
 void SExportPak::GeneratePakFiles(const TMap<FString, FDependenciesInfo> &DependenciesInfos)
 {
 	for (auto &DependencyInfo : DependenciesInfos)
@@ -333,7 +436,14 @@ void SExportPak::GeneratePakFiles(const TMap<FString, FDependenciesInfo> &Depend
 		TArray<FString> PackagesToHandle = DependencyInfo.Value.DependenciesInGameContentDir;
 		PackagesToHandle.Add(DependencyInfo.Key);
 
-		GeneratePakFiles_Internal(PackagesToHandle, DependencyInfo.Key);
+		if(ExportPakSettings->bUseBatchMode)
+		{
+			GenerateBatchPakFiles(PackagesToHandle, DependencyInfo.Key);
+		}
+		else
+		{
+			GenerateIndividualPakFiles(PackagesToHandle, DependencyInfo.Key);
+		}
 
 		SavePakDescriptionFile(DependencyInfo.Key, DependencyInfo.Value);
 	}
