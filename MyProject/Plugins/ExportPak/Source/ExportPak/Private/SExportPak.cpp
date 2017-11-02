@@ -335,7 +335,41 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 			*LogFilepath
 		);
 
-		FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, nullptr);
+		void* PipeRead = nullptr;
+		void* PipeWrite = nullptr;
+		int32 ReturnCode = -1;
+
+		verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
+		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, PipeWrite);
+
+
+		if (ProcessHandle.IsValid())
+		{
+			FPlatformProcess::WaitForProc(ProcessHandle);
+			FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode);
+			if (ReturnCode == 0)
+			{
+				TArray<FString> OutResults;
+				const FString StdOut = FPlatformProcess::ReadPipe(PipeRead);
+				StdOut.ParseIntoArray(OutResults, TEXT("\n"), true);
+				UE_LOG(LogExportPak, Log, TEXT("ExportPak success:\n%s"), *StdOut);
+			}
+			else
+			{
+				TArray<FString> OutErrorMessages;
+				const FString StdOut = FPlatformProcess::ReadPipe(PipeRead);
+				StdOut.ParseIntoArray(OutErrorMessages, TEXT("\n"), true);
+				UE_LOG(LogExportPak, Warning, TEXT("ExportPak Falied:\nReturnCode=%d\n%s"), ReturnCode, *StdOut);
+			}
+
+			FPlatformProcess::CloseProc(ProcessHandle);
+		}
+		else
+		{
+			UE_LOG(LogExportPak, Error, TEXT(" Failed to launch unrealPak.exe: %s"), *UnrealPakExeFilepath);
+		}
+
+		FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
 	}
 }
 
@@ -424,7 +458,40 @@ void GenerateBatchPakFiles(const TArray<FString>& PackagesToHandle, const FStrin
 		*LogFilepath
 	);
 
-	FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, nullptr);
+	void* PipeRead = nullptr;
+	void* PipeWrite = nullptr;	
+	int32 ReturnCode = -1;
+
+	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
+	FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, PipeWrite);
+
+	if (ProcessHandle.IsValid())
+	{
+		FPlatformProcess::WaitForProc(ProcessHandle);
+		FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode);
+		if (ReturnCode == 0)
+		{
+			TArray<FString> OutResults;
+			const FString StdOut = FPlatformProcess::ReadPipe(PipeRead);
+			StdOut.ParseIntoArray(OutResults, TEXT("\n"), true);
+			UE_LOG(LogExportPak, Log, TEXT("ExportPak success:\n%s"),  *StdOut);
+		}
+		else
+		{
+			TArray<FString> OutErrorMessages;
+			const FString StdOut = FPlatformProcess::ReadPipe(PipeRead);
+			StdOut.ParseIntoArray(OutErrorMessages, TEXT("\n"), true);
+			UE_LOG(LogExportPak, Warning, TEXT("ExportPak Falied:\nReturnCode=%d\n%s"), ReturnCode, *StdOut);
+		}
+
+		FPlatformProcess::CloseProc(ProcessHandle);
+	}
+	else
+	{
+		UE_LOG(LogExportPak, Error, TEXT(" Failed to launch unrealPak.exe: %s"), *UnrealPakExeFilepath);
+	}
+
+	FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
 }
 
 void SExportPak::GeneratePakFiles(const TMap<FString, FDependenciesInfo> &DependenciesInfos)
@@ -593,8 +660,6 @@ void SExportPak::SaveDependenciesInfo(const TMap<FString, FDependenciesInfo> &De
 		Info.HyperlinkText = FText::FromString(HyperLinkText);
 
 		FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Success);
-
-		UE_LOG(LogExportPak, Log, TEXT("%s. At %s"), *Message.ToString(), *ResultFileFilename);
 	}
 	else
 	{
