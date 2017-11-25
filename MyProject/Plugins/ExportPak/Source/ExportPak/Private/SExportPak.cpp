@@ -257,6 +257,11 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 {
 	FString HashedMainPackageName = HashStringWithSHA1(MainPackage);
 	FString PakOutputDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
+
+	float AmountOfWorkProgress = static_cast<float>(PackagesToHandle.Num());
+	float CurrentProgress = 0.0f;
+	FScopedSlowTask SlowTask(AmountOfWorkProgress);
+	SlowTask.MakeDialog();
 	for (auto& PackageNameInGameDir : PackagesToHandle)
 	{
 		// Standardize package name. May this is not necessary.
@@ -279,6 +284,8 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 				UE_LOG(LogExportPak, Log, TEXT("        %s"), *TargetLongPackageName);
 			}
 		}
+
+		SlowTask.EnterProgressFrame(CurrentProgress, FText::Format(NSLOCTEXT("ExportPak", "GenerateIndividualPakFiles", "Dependent asset {0}"), FText::FromString(TargetLongPackageName)));
 
 		FString TargetAssetFilepath;
 		{
@@ -340,7 +347,19 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 		int32 ReturnCode = -1;
 
 		verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
-		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, PipeWrite);
+		bool bLaunchDetached = false;
+		bool bLaunchHidden = true;
+		bool bLaunchReallyHidden = true;
+		uint32* OutProcessID = nullptr ;
+		int32 PriorityModifier = -1;
+		const TCHAR* OptionalWorkingDirectory = nullptr;
+		FProcHandle ProcessHandle = FPlatformProcess::CreateProc(
+			*UnrealPakExeFilepath, *CommandLine,
+			bLaunchDetached, bLaunchHidden, bLaunchReallyHidden,
+			OutProcessID, PriorityModifier,
+			OptionalWorkingDirectory,
+			PipeWrite
+		);
 
 
 		if (ProcessHandle.IsValid())
@@ -362,6 +381,7 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 				UE_LOG(LogExportPak, Warning, TEXT("ExportPak Falied:\nReturnCode=%d\n%s"), ReturnCode, *StdOut);
 			}
 
+			FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
 			FPlatformProcess::CloseProc(ProcessHandle);
 		}
 		else
@@ -369,7 +389,7 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 			UE_LOG(LogExportPak, Error, TEXT(" Failed to launch unrealPak.exe: %s"), *UnrealPakExeFilepath);
 		}
 
-		FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
+		CurrentProgress += 1.0f;
 	}
 }
 
@@ -459,11 +479,23 @@ void GenerateBatchPakFiles(const TArray<FString>& PackagesToHandle, const FStrin
 	);
 
 	void* PipeRead = nullptr;
-	void* PipeWrite = nullptr;	
+	void* PipeWrite = nullptr;
 	int32 ReturnCode = -1;
 
 	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
-	FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*UnrealPakExeFilepath, *CommandLine, false, true, true, nullptr, -1, nullptr, PipeWrite);
+	bool bLaunchDetached = false;
+	bool bLaunchHidden = true;
+	bool bLaunchReallyHidden = true;
+	uint32* OutProcessID = nullptr;
+	int32 PriorityModifier = -1;
+	const TCHAR* OptionalWorkingDirectory = nullptr;
+	FProcHandle ProcessHandle = FPlatformProcess::CreateProc(
+		*UnrealPakExeFilepath, *CommandLine,
+		bLaunchDetached, bLaunchHidden, bLaunchReallyHidden,
+		OutProcessID, PriorityModifier,
+		OptionalWorkingDirectory,
+		PipeWrite
+	);
 
 	if (ProcessHandle.IsValid())
 	{
@@ -485,24 +517,29 @@ void GenerateBatchPakFiles(const TArray<FString>& PackagesToHandle, const FStrin
 		}
 
 		FPlatformProcess::CloseProc(ProcessHandle);
+		FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
 	}
 	else
 	{
 		UE_LOG(LogExportPak, Error, TEXT(" Failed to launch unrealPak.exe: %s"), *UnrealPakExeFilepath);
 	}
 
-	FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
 }
 
 void SExportPak::GeneratePakFiles(const TMap<FString, FDependenciesInfo> &DependenciesInfos)
 {
+	float AmountOfWorkProgress = static_cast<float>(DependenciesInfos.Num());
+	float CurrentProgress = 0.0f;
+	FScopedSlowTask SlowTask(AmountOfWorkProgress);
+	SlowTask.MakeDialog();
 	for (auto &DependencyInfo : DependenciesInfos)
 	{
-		FString HashedLongPackageName = HashStringWithSHA1(DependencyInfo.Key);
+		SlowTask.EnterProgressFrame(CurrentProgress, FText::Format(NSLOCTEXT("ExportPak", "GeneratePakFiles", "Exporting Paks of asset: {0}"), FText::FromString(DependencyInfo.Key)));
 
+		FString HashedLongPackageName = HashStringWithSHA1(DependencyInfo.Key);
 		TArray<FString> PackagesToHandle = DependencyInfo.Value.DependenciesInGameContentDir;
 		PackagesToHandle.Add(DependencyInfo.Key);
-
+		
 		if(ExportPakSettings->bUseBatchMode)
 		{
 			GenerateBatchPakFiles(PackagesToHandle, DependencyInfo.Key);
@@ -513,6 +550,7 @@ void SExportPak::GeneratePakFiles(const TMap<FString, FDependenciesInfo> &Depend
 		}
 
 		SavePakDescriptionFile(DependencyInfo.Key, DependencyInfo.Value);
+		CurrentProgress += 1.0f;
 	}
 }
 
