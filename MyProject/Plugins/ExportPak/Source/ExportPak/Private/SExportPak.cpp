@@ -177,7 +177,7 @@ void SExportPak::CreateTargetAssetListView()
 	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::ComponentsAndActorsUseNameArea;
 	DetailsViewArgs.bCustomNameAreaLocation = false;
 	DetailsViewArgs.bCustomFilterAreaLocation = true;
-	DetailsViewArgs.DefaultsOnlyVisibility = FDetailsViewArgs::EEditDefaultsOnlyNodeVisibility::Hide;
+	DetailsViewArgs.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
 
 	SettingsView = EditModule.CreateDetailView(DetailsViewArgs);;
 }
@@ -256,7 +256,7 @@ private:
 void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const FString& MainPackage)
 {
 	FString HashedMainPackageName = HashStringWithSHA1(MainPackage);
-	FString PakOutputDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
+	FString PakOutputDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
 	for (auto& PackageNameInGameDir : PackagesToHandle)
 	{
 		// Standardize package name. May this is not necessary.
@@ -300,10 +300,10 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 
 		FString Filename = FPaths::GetBaseFilename(TargetAssetFilepath);
 		FString ProjectName = FPaths::GetBaseFilename(FPaths::GetProjectFilePath());
-		FString IntermediateDirectory = FPaths::GetPath(TargetAssetFilepath).Replace(*FPaths::GameDir(), TEXT(""), ESearchCase::CaseSensitive);
+		FString IntermediateDirectory = FPaths::GetPath(TargetAssetFilepath).Replace(*FPaths::ProjectDir(), TEXT(""), ESearchCase::CaseSensitive);
 
 		// TODO ArcEcho: Now it is hard-coded to WindowsNoEditor
-		FString TargetCookedAssetDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("Cooked/WindowsNoEditor"), ProjectName, IntermediateDirectory);
+		FString TargetCookedAssetDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Cooked/WindowsNoEditor"), ProjectName, IntermediateDirectory);
 
 		FCookedAssetFileVisitor CookedAssetFileVisitor(Filename);
 		FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*TargetCookedAssetDirectory, CookedAssetFileVisitor);
@@ -318,10 +318,10 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 		}
 
 		FString HashedPackageName = HashStringWithSHA1(PackageNameInGameDir);
-		FString LogFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + ".log");
+		FString LogFilepath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + ".log");
 		FString OutputPakFilepath = FPaths::Combine(PakOutputDirectory, HashedPackageName + TEXT(".pak"));
 
-		FString ResponseFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + "_Paklist.txt");
+		FString ResponseFilepath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + "_Paklist.txt");
 		FFileHelper::SaveStringToFile(ResponseFileContent, *ResponseFilepath);
 
 		FString UnrealPakExeFilepath = FPaths::Combine(FPaths::EngineDir(), TEXT("Binaries/Win64/UnrealPak.exe"));
@@ -376,7 +376,7 @@ void GenerateIndividualPakFiles(const TArray<FString>& PackagesToHandle, const F
 void GenerateBatchPakFiles(const TArray<FString>& PackagesToHandle, const FString& MainPackage)
 {
 	FString HashedMainPackageName = HashStringWithSHA1(MainPackage);
-	FString PakOutputDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
+	FString PakOutputDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
 
 	FString ResponseFileContent = "";
 
@@ -423,10 +423,10 @@ void GenerateBatchPakFiles(const TArray<FString>& PackagesToHandle, const FStrin
 
 		FString Filename = FPaths::GetBaseFilename(TargetAssetFilepath);
 		FString ProjectName = FPaths::GetBaseFilename(FPaths::GetProjectFilePath());
-		FString IntermediateDirectory = FPaths::GetPath(TargetAssetFilepath).Replace(*FPaths::GameDir(), TEXT(""), ESearchCase::CaseSensitive);
+		FString IntermediateDirectory = FPaths::GetPath(TargetAssetFilepath).Replace(*FPaths::ProjectDir(), TEXT(""), ESearchCase::CaseSensitive);
 
 		// TODO ArcEcho: Now it is hard-coded to WindowsNoEditor
-		FString TargetCookedAssetDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("Cooked/WindowsNoEditor"), ProjectName, IntermediateDirectory);
+		FString TargetCookedAssetDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Cooked/WindowsNoEditor"), ProjectName, IntermediateDirectory);
 
 		FCookedAssetFileVisitor CookedAssetFileVisitor(Filename);
 		FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*TargetCookedAssetDirectory, CookedAssetFileVisitor);
@@ -441,10 +441,10 @@ void GenerateBatchPakFiles(const TArray<FString>& PackagesToHandle, const FStrin
 	}
 
 	FString HashedPackageName = HashStringWithSHA1(MainPackage);
-	FString LogFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + ".log");
+	FString LogFilepath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + ".log");
 	FString OutputPakFilepath = FPaths::Combine(PakOutputDirectory, HashedPackageName + TEXT(".pak"));
 
-	FString ResponseFilepath = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + "_Paklist.txt");
+	FString ResponseFilepath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Temp"), HashedPackageName + "_Paklist.txt");
 	FFileHelper::SaveStringToFile(ResponseFileContent, *ResponseFilepath);
 
 	FString UnrealPakExeFilepath = FPaths::Combine(FPaths::EngineDir(), TEXT("Binaries/Win64/UnrealPak.exe"));
@@ -519,7 +519,7 @@ void SExportPak::GeneratePakFiles(const TMap<FString, FDependenciesInfo> &Depend
 void SExportPak::SavePakDescriptionFile(const FString& TargetPackage, const FDependenciesInfo& DependecyInfo)
 {
 	FString HashedMainPackageName = HashStringWithSHA1(TargetPackage);
-	FString PakOutputDirectory = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
+	FString PakOutputDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak/Paks"), HashedMainPackageName);
 
 	TSharedPtr<FJsonObject> RootJsonObject = MakeShareable(new FJsonObject);
 	{
@@ -636,7 +636,7 @@ void SExportPak::SaveDependenciesInfo(const TMap<FString, FDependenciesInfo> &De
 	auto JsonWirter = TJsonWriterFactory<>::Create(&OutputString);
 	FJsonSerializer::Serialize(RootJsonObject.ToSharedRef(), JsonWirter);
 
-	FString ResultFileFilename = FPaths::Combine(FPaths::GameSavedDir(), TEXT("ExportPak"), TEXT("/AssetDependencies.json"));
+	FString ResultFileFilename = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ExportPak"), TEXT("/AssetDependencies.json"));
 	ResultFileFilename = FPaths::ConvertRelativePathToFull(ResultFileFilename);
 
 	// Attention to FFileHelper::EEncodingOptions::ForceUTF8 here. 
