@@ -568,8 +568,8 @@ void SExportPak::SavePakDescriptionFile(const FString& TargetPackage, const FDep
 		RootJsonObject->SetStringField("pak_file", HashedMainPackageName + TEXT(".pak"));
 		RootJsonObject->SetStringField("asset_class", DependecyInfo.AssetClassString);
 
-		//FString FileSizeInBytes = FString::Printf(TEXT("%lld"), FPlatformFileManager::Get().GetPlatformFile().FileSize(*PakFilepath));
-		//RootJsonObject->SetStringField("file_size_in_bytes", FileSizeInBytes);
+		FString FileSizeInBytes = FString::Printf(TEXT("%lld"), FPlatformFileManager::Get().GetPlatformFile().FileSize(*PakFilepath));
+		RootJsonObject->SetStringField("file_size_in_bytes", FileSizeInBytes);
 	}
 
 	TArray<TSharedPtr<FJsonValue>> DependencyEntries;
@@ -579,11 +579,11 @@ void SExportPak::SavePakDescriptionFile(const FString& TargetPackage, const FDep
 
 		FString HashedPackageName = HashStringWithSHA1(DependencyInGameContentDir);
 		FString PakFilepath = FPaths::Combine(PakOutputDirectory, HashedPackageName + TEXT(".pak"));
-		//FString FileSizeInBytes = FString::Printf(TEXT("%lld"), FPlatformFileManager::Get().GetPlatformFile().FileSize(*PakFilepath));
+		FString FileSizeInBytes = FString::Printf(TEXT("%lld"), FPlatformFileManager::Get().GetPlatformFile().FileSize(*PakFilepath));
 
 		EntryJsonObject->SetStringField("long_package_name", DependencyInGameContentDir);
 		EntryJsonObject->SetStringField("pak_file", HashedPackageName + TEXT(".pak"));
-		//EntryJsonObject->SetStringField("file_size_in_bytes", FileSizeInBytes);
+		EntryJsonObject->SetStringField("file_size_in_bytes", FileSizeInBytes);
 
 		TSharedRef< FJsonValueObject > JsonValue = MakeShareable(new FJsonValueObject(EntryJsonObject));
 		DependencyEntries.Add(JsonValue);
