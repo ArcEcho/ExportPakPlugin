@@ -12,4 +12,4 @@
 + Make sure you have cooked your project before using this plugin
 + Only assets in game content directory will be handled.
 + pak file name is the SHA1 hash code of its long package name.
-+ UE4.17 and window platform only.
++ UE4.17 and windows platform only.
